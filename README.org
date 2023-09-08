@@ -1,0 +1,359 @@
+#+title:     Functional Programming in Scala
+#+author:    Manmohan Krishna
+#+email:     krishna.m.zyw@gmail.com
+
+* Motivation
+In this talk, we'll get to know the main ideas behind Functional Programming and see it in action with Scala.
+Concepts like functional error handling can be seen even in newer languages like Go and Rust.
+So, even if you're not doing FP, you can take away a thing or two from the talk.
+A whole new paradigm awaits you to discover.
+
+* Declarative vs Imperative Programming
+** Imperative(Procedural) - the HOW?
+Through code, steps are specified to accomplish a goal.
+It is equivalent to telling a machine the exact steps.
+You can trace the execution of the program as it runs.
+** Declarative - the WHAT?
+Through code, you describe logic of a computation without describing its control flow.
+#+begin_src sql
+SELECT * from persons where persons.favourite_food='biryani';
+#+end_src
+** WHY Declarative?
+Writing reliable software is about properly managing complexity.
+You use declarative APIs to write the *WHAT?*.
+Many(if not all) declarative APIs have some sort of imperative implementation.
+** An example in Scala
+*** Imperative
+#+begin_src scala
+var sum = 0
+for(i <- 1 to 10) sum+=i
+#+end_src
+*** Declarative
+**** One way
+#+begin_src scala
+val sum = (1 to 10).reduce(_ + _)
+#+end_src
+**** OR even better
+#+begin_src scala
+val sum = (1 to 10).sum
+#+end_src
+
+* What is Functional Programming?
+A form of declarative programming.
+You specify what information is desired and what transformations are required.
+You define the input to each function and what each function returns.
+
+* FP in Scala
+Functional programming is based on the principle that we construct our programs using only *pure functions*.
+
+** Pure Functions and Side-effects
+A pure function is one that has no *side effects*.
+*** Side-effects
+A function is said to have a _side_effect_ if it does something other than simply return a value, eg -
+🚩  Modifying a variable
+🚩  Modifying a data structure in place
+🚩  Setting a field on an object
+🚩  Throwing an exception or halting with an error
+🚩  Printing to a console or reading user input
+🚩  Reading from or writing to a file
+
+- The first three are mutating state
+- Throwing an exception in JVM shuts it down if not handled which sends the program in an "unknown" state,
+- The last two are examples are interactions of the program with the "outside world"(IO).
+  Similarly, database read/write is also a side-effect.
+*** Aren't some kinds of side effects necessary?
+Some side effects are necessary to write useful programs, eg, interacting with the database.
+
+In functional style, we write expressions that declare that the program is going to write to a file but doesn't perform the action where it is *declared*.
+
+We write our logic as pure functions and move *side effects to the edges* of our program.
+It is at the *end of the world*, that the expression is evaluated and the action is performed.
+
+Compare this to a "Building construction plan"-
+1. A high level plan is prepared, and the order in which things will be done is decided.
+2. Once everything is finalized, we start working on the plan.
+
+As can be guessed, the expression which describes the action *where declared* would follow *lazy evaluation* to NOT have that action performed at the site of its declaration.
+*** An example
+**** Side effect
+[[file:AplusB.scala][Side-effecting Example]]
+**** Functional Approach
+[[file:AplusBFunc.scala][source]]
+[[Substitution Model][Go back]]
+#+begin_src scala
+object AplusBFunc {
+  ...
+  val program: IO[Unit] =  for {
+    line <- IO(scala.io.StdIn.readLine)
+    sum = line.split(" ").map(_.toInt).sum
+    _ <- IO(() => println(sum))
+  } yield ()
+
+  def main(args: Array[String]): Unit = program.unsafeRun()
+}
+#+end_src
+
+** Referential Transparency and the Substitution Model
+*** Referential Transparency
+In a program, an expression is said to be *referentially transparent* if the expression can be replaced by its value.
+[[file:AplusB.scala][Non-referentially transparent example]]
+*** Substitution Model
+Referential Transparency enforces that -
+*Everything a function does is represented by the value it returns*
+
+So, if a function is referentially transparent, we can substitute the function by the value it returns. This is the _Substitution_Model_.
+
+Think about the [[Functional Approach][functional approach]] that we used to print the addition of two numbers.
+
+** Higher-Order Functions(Passing Functions to Functions)
+Functions are values.
+Just like values of other types - such as integer,
+functions can be assigned to variables, stored in data structures, and passed as arguments to functions.
+*** Example 1
+#+begin_src scala
+def doubleF(x: Int) = x * 2
+val double = doubleF
+doubleF(2)
+double(2)
+#+end_src
+*** Example 2
+#+begin_src scala
+def sum(x: Int, y: Int) = x + y
+def prod(x: Int, y: Int) = x * y
+val sum_prod = List(sum, prod)
+sum_prod.map(f => f(2, 3))
+#+end_src
+*** Example 3
+#+begin_src scala
+def isEven: Int => Boolean =
+  x => x % 2 == 0
+(1 to 10).filter(isEven)
+#+end_src
+** Anonymous Functions
+If there is a use-and-throw function which might be getting used at just one place, eg, while passing it as an argument to a HOF(functions which take functions as arguments), we don't need to name it.
+The named example, [[Example 3]]
+#+begin_src scala
+(1 to 10).filter(num => num % 2 == 0)
+#+end_src
+*** Shorter syntax
+#+begin_src scala
+(1 to 10).map(_ % 2 == 0)
+#+end_src
+** Writing loops functionally(With Cpp)
+*** Plain old iteration
+#+begin_src cpp
+#include <iostream>
+using namespace std;
+int main() {
+  string cars[4] = {"Volvo", "BMW", "Ford", "Mazda"};
+  int len = sizeof(cars) / sizeof(cars[0]);
+
+  int totalLength = 0;
+  for(int i = 0; i < len; i++) {
+    totalLength += cars[i].size();
+  }
+  cout << totalLength;
+  return 0;
+}
+#+end_src
+
+*** The non-functional Recursion
+You'll hear FP encourages recursion, which is true, But...
+It is possible to do recursion non-functionally.
+The key is to NOT have a *global mutable variable*.
+#+begin_src cpp
+#include <iostream>
+using namespace std;
+
+void sumOfStringLengths(string arr[], int len, int i, int* totalLength) {
+  if(i == len) {
+    return;
+  } else {
+    *totalLength += arr[i].size();
+    sumOfStringLengths(arr, len, i + 1, totalLength);
+  }
+}
+
+int main() {
+  string cars[4] = {"Volvo", "BMW", "Ford", "Mazda"};
+  int len = sizeof(cars) / sizeof(cars[0]);
+
+  int totalLength = 0;
+  sumOfStringLengths(cars, len, 0, &totalLength);
+  cout<<totalLength;
+  return 0;
+}
+#+end_src
+
+*** The functional way
+*Continuation Passing Style*
+We pass the state(continuation) as an argument to the next recursion call.
+#+begin_src cpp
+#include <iostream>
+using namespace std;
+
+int sumOfStringLengths(string arr[], int len, int i, int totalLength) {
+  if(i == len) {
+    return totalLength;
+  } else {
+    return sumOfStringLengths(arr, len, i + 1, totalLength + arr[i].size());
+  }
+}
+
+int main() {
+  string cars[4] = {"Volvo", "BMW", "Ford", "Mazda"};
+  int len = sizeof(cars) / sizeof(cars[0]);
+
+  cout<<sumOfStringLengths(cars, len, 0, 0);
+  return 0;
+}
+#+end_src
+**** In Scala
+*Continuation Passing Style*
+#+begin_src scala
+val cars = List("Volvo", "BMW", "Ford", "Mazda")
+def totalLength(l: List[String]): Int = {
+  @scala.annotation.tailrec
+  def go(rem: List[String], acc: Int): Int = {
+    if(rem.isEmpty) acc
+    else go(rem.tail, acc + rem.head.length)
+  }
+  go(l, 0)
+}
+totalLength(cars)
+#+end_src
+** Polymorphic Functions
+**** Question
+#+begin_src scala
+def isSorted[A](as: Array[A], ordered: (A, A) => Boolean): Boolean = {...}
+#+end_src
+**** Solution
+#+begin_src scala
+def isSorted[A](as: Array[A], ordered: (A, A) => Boolean): Boolean = {
+  val length = as.length
+  @scala.annotation.tailrec
+  def go(i: Int): Boolean = {
+    if(i == length - 1) true
+    else if(!ordered(as(i), as(i + 1))) false
+    else go(i + 1)
+  }
+  go(0)
+}
+val isNonIncreasing = (x: Int, y: Int) => x > y
+isSorted(Array(5, 4, 3, 2, 1), isNonIncreasing) // true
+isSorted(Array(5, 4, 3, 2, 3), isNonIncreasing) // false
+
+val isNonDecreasing = (x: String, y: String) => x.length < y.length
+val incString = "A str with increasing lengthssssss"
+isSorted(incString.split(" ").toArray, isNonDecreasing) // true
+isSorted(Array("slo", "mo", "buddy"), isNonDecreasing) // false
+#+end_src
+
+** Functional Data Structures and Pattern Matching
+A functional data structure is operated upon only by *pure functions*.
+A _pure_function_ must not change the data in place or perform other side effects.
+So, by definition, functional data structures are immutable.
+#+begin_src scala
+// MyList `sum type` or `union type` or `OR type`
+sealed trait MyList[+A]
+case object EmptyList extends MyList[Nothing]
+final case class ConsList[+A](head: A, tail: MyList[A]) extends MyList[A]
+
+object MyList {
+  // this is not tail recursive, try making it so...
+  def sum(ints: MyList[Int]): Int = ints match {
+    // a MyList[Int] can either be an `EmptyList` or `ConsList`
+    case EmptyList => 0
+    case ConsList(x, xs) => x + sum(xs) // destructuring the elements
+  }
+}
+
+val intList = ConsList(1, ConsList(2, ConsList(3, ConsList(4, EmptyList))))
+MyList.sum(intList)
+#+end_src
+
+NOTE: `Product` types are tuples in Scala and in other languages like Rust. Can also be called `AND types`
+*** Expressive Scala
+#+begin_src scala
+val list = 1 :: 2 :: 3 :: 4 :: Nil
+val newList = list.map(num => if(num % 2 != 0) num * 2 else num)
+list.sum
+newList.sum
+#+end_src
+** Functional Error Handling(Try,Option,Either)
+
+[[file:WhyTry.scala][WhyTry]]
+
+** Currying
+
+Named after *Haskell Curry*, Haskell is also a pure FP language.
+Helps us with flexibility to create smaller functions of differing behaviour.
+#+begin_src scala
+def combineList[A](combine: (A, A) => A, initial: A)(as: List[A]): A = {
+  @scala.annotation.tailrec
+  def go(rem: List[A], acc: A): A = {
+    rem match {
+      case Nil => acc
+      case head :: tail => go(tail, combine(acc, head))
+    }
+  }
+  go(as, initial)
+}
+
+// Partial Application of `combineList` Function
+val listAdder = combineList((x: Int, y: Int) => x + y, 0)
+val listMultipler = combineList((x: Int, y: Int) => x * y, 1)
+val stringConcatenator = combineList((x: String, y: String) => x ++ y, "")
+
+listAdder((1 to 4).toList)
+listMultipler((1 to 4).toList)
+stringConcatenator(List("Hello", " Scala"))
+#+end_src
+
+#+begin_src scala
+def toCurry[A, B, C](f: (A, B) => C): A => B => C = (x: A) => (y: B) => f(x, y)
+def unCurry[A, B, C](f: A => B => C): (A, B) => C = (x: A, y: B) => f(x)(y)
+#+end_src
+** given..using and extension methods
+*** sorted
+#+begin_src scala
+val list = List(2, 1, 6, 2, 3, 7, 3, 0)
+list.sorted
+#+end_src
+
+#+begin_src scala
+given descOrdering: Ordering[Int] = Ordering.fromLessThan(_ > _)
+val list = List(2, 1, 6, 2, 3, 7, 3, 0)
+list.sorted // given ordering is passed implicitly
+#+end_src
+
+[[file:Person.scala][given..using example]]
+[[file:Extensions.scala][extensions example]]
+** FP abstractions using Cats
+#+begin_src scala
+{
+
+
+case class Expense(items: List[String], price: Double)
+object Expense {
+  given Semigroup[Expense] with
+    def combine(a: Expense, b: Expense): Expense =
+      Expense(a.items ++ b.items, a.price + b.price)
+}
+val expenses: List[Expense] = List(
+                                Expense(List("Toolbox", "Shaving gel"), 604.25),
+                                Expense(List("Dosa Batter", "Curd"), 130.19),
+                                Expense(List("Naruto Action Figure"), 299.00)
+                              )
+val finalExpense: Expense = expenses.reduceLeft(_ |+| _)
+
+println(finalExpense)
+
+}
+
+
+#+end_src
+*** Lesson Learnt
+Do not take your kid with you to the mall 😜
+* References
+FP in Scala, by Paul Chiusano and Runar Bjarnason
