@@ -1,6 +1,9 @@
-#+title:     Functional Programming in Scala
-#+author:    Manmohan Krishna
-#+email:     krishna.m.zyw@gmail.com
+#+title: Functional Programming in Scala
+#+author: Manmohan Krishna
+#+email: krishna.m.zyw@gmail.com
+ [[https://www.linkedin.com/in/krishna1m][LinkedIn]] [[https://www.x.com/re1konn][X]]
+
+ [[file:img/scala.jpeg][scala]]
 
 * Motivation
 In this talk, we'll get to know the main ideas behind Functional Programming and see it in action with Scala.
@@ -8,6 +11,7 @@ Concepts like functional error handling can be seen even in newer languages like
 So, even if you're not doing FP, you can take away a thing or two from the talk.
 A whole new paradigm awaits you to discover.
 
+[[file:img/functional.png][fp]]
 * Declarative vs Imperative Programming
 ** Imperative(Procedural) - the HOW?
 Through code, steps are specified to accomplish a goal.
@@ -80,6 +84,7 @@ As can be guessed, the expression which describes the action *where declared* wo
 **** Functional Approach
 [[file:AplusBFunc.scala][source]]
 [[Substitution Model][Go back]]
+#+name: functional approach
 #+begin_src scala
 object AplusBFunc {
   ...
@@ -103,7 +108,7 @@ Referential Transparency enforces that -
 
 So, if a function is referentially transparent, we can substitute the function by the value it returns. This is the _Substitution_Model_.
 
-Think about the [[Functional Approach][functional approach]] that we used to print the addition of two numbers.
+Think about the [[functional approach]] that we used to print the addition of two numbers.
 
 ** Higher-Order Functions(Passing Functions to Functions)
 Functions are values.
